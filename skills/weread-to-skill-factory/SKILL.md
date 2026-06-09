@@ -161,7 +161,7 @@ Evidence First Principle、No Fabrication Rule、Runtime Trace、Gate Trace、Mo
 
 - **`api_name` 不是 `action`**：WeRead Gateway 的接口名参数是 `api_name`，写错返回 -2010「用户不存在」，容易误判为 key 失效
 - **`/review/list/mine` 的参数是 `bookid`（小写 i）**，不是 `bookId`，写错返回 -2003
-- **API key 用户绑定可能断开**：key 本身未过期（搜索等公开接口正常），但用户身份绑定失效（/shelf/sync、/user/notebooks、/book/bookmarklist 返回 -2010）。需重新扫码授权（`python3 scripts/weread_auth.py --qr`）
+- **API key 用户绑定可能断开**：key 本身未过期（搜索等公开接口正常），但用户身份绑定失效（/shelf/sync、/user/notebooks、/book/bookmarklist 返回 -2010）。需重新扫码授权（使用 [agent-weread-skill](https://github.com/lovekeji-ai/agent-weread-skill) 的认证流程）
 - **headless browser 打不开微信读书登录页的 QR 码**：被反爬拦截。用 agent-weread-skill 的 `weread_auth.py --qr` 脚本生成终端 ASCII QR 码 + PNG 文件
 
 ## 验证政策

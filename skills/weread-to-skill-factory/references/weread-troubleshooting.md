@@ -14,11 +14,13 @@
 
 ### Re-auth 流程（使用 agent-weread-skill）
 
+本仓库不包含认证脚本。如需重新授权，请使用 [agent-weread-skill](https://github.com/lovekeji-ai/agent-weread-skill) 提供的认证流程。
+
 ```bash
 # 1. 确保 qrcode 包已安装
 pip3 install qrcode
 
-# 2. 运行扫码登录脚本
+# 2. 运行扫码登录脚本（在 agent-weread-skill 仓库中）
 cd ~/.hermes/skills/agent-weread-skill
 python3 scripts/weread_auth.py --qr
 ```
@@ -33,7 +35,7 @@ python3 scripts/weread_auth.py --qr
 2. 复制 URL `https://weread.qq.com/web/confirm?pf=2&uid=...` — 微信内打开直接确认
 3. 终端 ASCII QR — 需要终端足够宽
 
-**注意**：headless browser 打开 `https://weread.qq.com/r/weread-skills` 可能被反爬拦截，QR 码不加载。优先用 `weread_auth.py --qr` 脚本。
+**注意**：headless browser 打开 `https://weread.qq.com/r/weread-skills` 可能被反爬拦截，QR 码不加载。优先用 agent-weread-skill 的 `weread_auth.py --qr` 脚本。
 
 ### 验证修复
 

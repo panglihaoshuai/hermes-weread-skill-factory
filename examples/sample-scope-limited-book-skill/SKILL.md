@@ -1,7 +1,7 @@
 ---
 name: sample-scope-limited-book-skill
 version: 1.0
-status: INSTALLED
+status: SAMPLE
 scope-limited: true
 description: >
   示例 book-skill（虚构内容）。
@@ -98,13 +98,13 @@ tags: [sample, demo, example]
 ## 版本信息
 
 - **版本**：1.0
-- **状态**：Installed
+- **状态**：Sample
 - **Scope**：WeRead 前 2 章 + Guided Viva（前 6 章理解）
 - **生成日期**：2026-06-09
-- **安装日期**：2026-06-09
+- **安装日期**：N/A（示例）
 - **Evidence Source**：WeRead bookmarks + Viva Q1-Q10（虚构）
 - **Eval Result**：示例结果
-- **Install Permission**：APPROVED by user
+- **Install Permission**：N/A（示例）
 
 ---
 

@@ -21,7 +21,7 @@ Header: Authorization: Bearer $WEREAD_API_KEY
 | 接口 | 用途 | 需登录 | smoke test | Gate 权重 |
 |------|------|--------|-----------|----------|
 | `/store/search` | 搜索书籍 | 否 | ✅ 返回6条 | 辅助 |
-| `/user/notebooks` | 笔记本概览（有笔记的书+数量） | 是 | ✅ 返回5本 | **候选发现入口** |
+| `/user/notebooks` | 笔记本概览（有笔记的书+数量） | 是 | ✅ 部分环境已验证 | **候选发现入口**（失败时按 UNKNOWN 处理，不得阻塞 Gate） |
 | `/book/info` | 书籍详情 | 否 | ✅ 返回title/author | 辅助 |
 | `/book/chapterinfo` | 章节目录 | 否 | ✅ 返回109章 | 辅助 |
 | `/shelf/sync` | 书架列表 | 是 | ✅ 返回books数组 | 辅助 |
@@ -30,7 +30,6 @@ Header: Authorization: Bearer $WEREAD_API_KEY
 | `/book/bestbookmarks` | 热门划线Top20 | 是 | ✅ 返回20条items | 仅辅助 |
 | `/book/readreviews` | 划线下评论 | 是 | ✅ 返回reviews数据 | 仅辅助 |
 | `/book/getprogress` | 阅读进度 | 是 | ⚠️ 未测试 | 核心（UNKNOWN） |
-| `/user/notebooks` | 笔记本概览 | 是 | ⚠️ 未测试 | 辅助（UNKNOWN） |
 | `/book/recommend` | 推荐 | 是 | ⚠️ 未测试 | 仅辅助 |
 | `/book/similar` | 相似书籍 | 是 | ⚠️ 未测试 | 仅辅助 |
 | `/book/underlines` | 划线热度统计 | 是 | ⚠️ 未测试 | 仅辅助 |
