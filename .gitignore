@@ -1,0 +1,66 @@
+# Environment files
+.env
+*.env
+.env.*
+.env.local
+.env.*.local
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+
+# Secrets and keys
+*.secret
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+private/
+
+# WeRead specific
+.weread/
+cookies/
+tokens/
+weread_cookies.json
+weread_token.json
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Test/coverage
+.coverage
+htmlcov/
+.pytest_cache/

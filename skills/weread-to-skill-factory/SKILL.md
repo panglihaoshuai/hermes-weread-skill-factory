@@ -1,0 +1,336 @@
+---
+name: weread-to-skill-factory
+version: 1.0
+description: >
+  把微信读书中精读、划线、批注、认可的书，蒸馏成可复用的 book-skill。
+  不是总结书，是提取认知框架、判断规则、反模式和行动协议。
+  有 Reading Gate：必须通过精读资格判定才能生成 skill。
+  触发词：「蒸馏这本书」「把书变成skill」「distill this book」「book to skill」
+  「从书架里选一本做skill」「做一本XX的skill」「把XX蒸馏成skill」。
+tags: [book, distillation, skill-creation, weread, knowledge-extraction]
+---
+
+# Weread → Skill Factory
+
+把精读过的书蒸馏成可运行的认知操作系统。
+不是总结书，不是复述原文，不是写读后感——是提取「遇到问题时如何判断、如何反问、如何行动」。
+
+## ⚠️ Reading Gate（最高优先级）
+
+**没有通过精读资格判定的书，不允许进入 factory 加工为 book-skill。**
+
+核心原则：
+- 不要把「书架里有」「听过」「热门」「别人推荐」「简介看起来不错」「热门划线很多」误判成「值得蒸馏为 skill」
+- 可以总结 ≠ 可以生成 skill
+- 只有真正被用户**精读、理解、认可、批判、迁移**过的书，才允许进入 skill 生成流程
+
+### Gate 判定总流程
+
+```
+用户要求蒸馏某本书
+    ↓
+Reading Gate 检查
+    ├─ 路径A: WeRead 证据路径 → 有个人划线/批注/完成度 → 评分
+    └─ 路径B: 私下精读自证路径 → 无个人证据 → Private Reading Viva 口试
+    ↓
+评分判定 → Level 0/1/2/3
+    ├─ Level 0: Reject → 不生成任何 skill
+    ├─ Level 1: Reading Card → 不安装，不进入 skill 系统
+    ├─ Level 2/3 候选 → 用户 WRITE_APPROVED
+    │   → 生成 Draft Book Skill（标记 DRAFT）
+    │   → 跑 eval（trigger/application/adversarial）
+    │   → eval 通过
+    │   → 用户再次批准
+    │   → 安装正式 book-skill
+    └─ Refresher Needed → 输出 Refresher Card 或 Guided Viva 选项
+```
+
+### WeRead 证据路径
+
+调用 weread-skills 获取数据。详见 `references/reading-gate-rubric.md`。
+
+**候选发现**：先调 `/user/notebooks` 获取有笔记的书列表（含 reviewCount/noteCount/bookmarkCount），按总笔记数降序选择候选书。不要逐本调 `/book/bookmarklist` 碰运气。
+
+评分采用 20 分制（5维度）：
+- 阅读完成度 0-4 / 个人划线密度 0-4 / 个人批注质量 0-5 / 章节覆盖度 0-3 / 现实连接度 0-4
+
+**低分处理规则**：
+- 16-20 → Level 3 候选（强通过）
+- 12-15 → Level 2 候选（条件通过，要求补充）
+- 8-11 → Level 1 Reading Card，但如果用户声称精读过 → 转入 Private Reading Viva
+- 0-7 但有个人批注/用户声称精读/外部证据 → 转入 Private Reading Viva
+- 0-7 且无任何个人证据且用户不能自证 → Level 0 Reject
+
+**低分不得自动 Reject。** 低分 + 有个人批注/用户自证/外部证据时，必须给用户进入 Viva 的机会。
+
+**硬性失败条件**（任一触发 → 直接 Level 0）：
+- 没有个人划线，也没有个人批注，也没有用户自证
+- 只依赖热门划线和公开书评
+- 用户只是「听说这本书不错」「想以后读」「书架里有」「别人推荐」
+
+**API UNKNOWN 处理**：`/book/getprogress` 和 `/user/notebooks` 当前未验证。API 不可用或未测试时记 UNKNOWN，不得记 0，不得直接 FAIL。详见 `references/weread-data-contract.md`。
+
+### 私下精读自证路径（Private Reading Viva）
+
+如果微信读书缺少个人证据，但用户声称在其他渠道精读过，必须入口试。
+三种模式：Strict（10题正式验收）、Guided（逐题追问）、Fixture（模拟测试）。
+用户说「忘了/答不上来/题太多」→ Refresher Needed，不得判定伪读。
+30 分制，一票否决规则。详见 `references/private-reading-viva.md`。
+
+### 状态机与抗逃逸防护
+
+本 skill 是一个有限状态机（FSM）。一旦进入流程，必须始终处于某个明确状态，不允许处于"无状态"或"自由聊天"状态。
+
+15 个允许状态、状态流转图、终止条件、压缩恢复检查点，详见 `references/skill-state-machine.md`。
+
+**Skill Escape Guard**：进入非 IDLE 状态后，禁止提前结束流程、输出泛泛建议、跳到其他 skill 或自由闲聊。只有达到 TERMINATED 状态才允许退出。
+
+**Compression Recovery**：如果发生 `/compress`、context restore、长对话恢复，必须先输出当前状态和 Required Next Action，再继续执行。
+
+### Harness Engineering（约束工程）
+
+系统必须默认认为「通过测试 ≠ 正确」。禁止为了通过测试而隐藏错误、编造证据、伪造运行过程。
+
+Evidence First Principle、No Fabrication Rule、Runtime Trace、Gate Trace、Modification Trace、Anti-Goodhart Rule 等约束，详见 `references/harness-engineering.md`。
+
+### 产物分级
+
+根据 Gate 结果输出四级产物。详见 `references/output-leveling.md`。
+
+| Level | 名称 | 说明 |
+|-------|------|------|
+| 0 | Reject | 不生成任何 skill |
+| 1 | Reading Card | 概览，不安装 |
+| 2 | Draft Book Skill | 草稿，不默认启用 |
+| 3 | Installed Book Skill | 正式安装，必须有 evals |
+
+## 蒸馏方法（仅 Level 2/3 适用）
+
+参考女娲五层蒸馏法（`references/nuwa-distillation-pattern.md`）：
+表达 DNA → 心智模型 → 决策启发式 → 反模式 → 诚实边界
+
+提取 HOW they think，不是 WHAT they said。
+
+蒸馏输出：一句话总论 + 章节结构地图 + 5-9 个核心模型 + 决策启发式 + 反模式 + 诊断问题 + 行动协议 + 诚实边界。模板见 `references/book-skill-template.md`。
+
+## 红线
+
+详见 `references/garbage-prevention.md`。核心：
+1. 不得因为出名/书架里有/热门划线多就生成 skill
+2. 证据不足时只能生成 reading-card
+3. 每个正式 book-skill 必须有 eval + evidence-ledger + 不适用场景
+
+## Pitfalls（已知陷阱）
+
+### Level 3 术语陷阱
+
+**错误**：评分后直接说「Level 3: Installed Book Skill」
+**正确**：说「Level 3 Candidate」，并说明「未经 Draft 生成、eval 通过、用户二次批准，不得称为 Installed」
+
+**原因**：Level 3 Candidate 只代表 Gate/Viva 达标，允许进入 Draft 生成流程。Installed 需要完成整个 v1.0 final 流程（Draft → eval → 用户批准安装）。
+
+### v1.0 final 流程陷阱
+
+**错误**：DRAFT_BOOK_SKILL_COMPLETED 后直接 TERMINATED
+**正确**：必须继续 EVAL_RUNNING → EVAL_COMPLETED → WAITING_INSTALL_APPROVAL → BOOK_SKILL_INSTALLED → TERMINATED
+
+**原因**：v1.0 final 要求 eval 通过 + 用户二次批准安装。只完成 Draft 不算完成。
+
+### Scope-Limited 声明陷阱
+
+**错误**：声称覆盖全书但实际只有部分章节证据
+**正确**：必须声明 `scope-limited`，说明实际覆盖范围和限制
+
+**原因**：WeRead 证据可能只覆盖前几章，Viva 回答可能只涉及部分主题。必须诚实声明范围。
+
+### Post-Viva 泛泛评价陷阱
+
+**错误**：Q10 完成后输出「你阅读很扎实」「建议写读书笔记」
+**正确**：必须输出 7 维度评分 + 总分 + 一票否决检查 + 阅读痕迹检查 + Level 判定 + 是否允许 Draft
+
+**原因**：Post-Viva Scoring Protocol 是强制流程，不得跳过或简化。
+
+### /compress 逃逸陷阱
+
+**错误**：/compress 后直接响应新话题，忘记当前状态
+**正确**：必须先输出 checkpoint（Current State / Previous State / Required Next Action），再继续执行
+
+**原因**：状态机必须在压缩恢复后立即重建，否则流程丢失。
+
+## API Pitfalls
+
+- **`api_name` 不是 `action`**：WeRead Gateway 的接口名参数是 `api_name`，写错返回 -2010「用户不存在」，容易误判为 key 失效
+- **`/review/list/mine` 的参数是 `bookid`（小写 i）**，不是 `bookId`，写错返回 -2003
+- **API key 用户绑定可能断开**：key 本身未过期（搜索等公开接口正常），但用户身份绑定失效（/shelf/sync、/user/notebooks、/book/bookmarklist 返回 -2010）。需重新扫码授权（`python3 scripts/weread_auth.py --qr`）
+- **headless browser 打不开微信读书登录页的 QR 码**：被反爬拦截。用 agent-weread-skill 的 `weread_auth.py --qr` 脚本生成终端 ASCII QR 码 + PNG 文件
+
+## 验证政策
+
+所有检查必须输出 PASS / FAIL / UNKNOWN / SKIPPED。
+exit 1 / timeout / blocked / user denied 一律不能写 PASS。
+详见 `references/verification-policy.md`。
+
+## 参考文件
+
+| 文件 | 用途 |
+|------|------|
+| `references/reading-gate-rubric.md` | Reading Gate 详细评分规则（WeRead 20分 + Viva 30分） |
+| `references/private-reading-viva.md` | 私下精读口试（10题 + 评分 + 一票否决 + 进度显示 + 截断处理） |
+| `references/output-leveling.md` | 产物分级（Level 0-3 详细说明） |
+| `references/garbage-prevention.md` | 垃圾场防护规则（10条红线） |
+| `references/evidence-ledger-template.md` | 证据账本模板 |
+| `references/evidence-rubric.md` | 证据等级标准（A-F） |
+| `references/verification-policy.md` | 验证政策（PASS/FAIL/UNKNOWN/SKIPPED + 状态机验证） |
+| `references/nuwa-distillation-pattern.md` | 女娲五层蒸馏法参考 |
+| `references/weread-data-contract.md` | 微信读书 API 数据契约 |
+| `references/book-skill-template.md` | book-skill 文件模板 |
+| `references/eval-rubric.md` | 评估评分标准 |
+| `references/skill-state-machine.md` | 状态机定义（15状态 + 流转图 + 终止条件 + 压缩恢复 + Install Pipeline + Smoke Test） |
+| `references/harness-engineering.md` | 约束工程（Evidence First + No Fabrication + Runtime Trace） |
+
+## 版本门控（v1.0-rc vs v1.0 final）
+
+### v1.0-rc 条件（release candidate）
+- Gate 规则定义完整且无冲突
+- UNKNOWN 归一化已定义
+- 三种 Viva 模式 + Refresher Needed 已定义
+- 阅读痕迹覆盖规则已定义
+- 已有测试事实记录（Live Gate Dry-run + Fixture Viva）
+- 无阻塞性规则冲突
+
+### v1.0 final 条件（在 rc 基础上还需）
+- 已生成第一本真实 Draft Book Skill（非 Fixture）
+- 已跑完 trigger/application/adversarial eval
+- 用户已确认安装正式 book-skill
+- `/book/getprogress` 和 `/user/notebooks` API 已 smoke test（或明确标记 UNKNOWN 且不阻塞）
+
+**判定**：v1.0-rc 只靠规则+测试事实；v1.0 final 必须有真实产物。
+
+## 流程阶段（v1.0 final 完整流程）
+
+```
+IDLE → BOOK_SELECTED → GATE_RUNNING → GATE_COMPLETED
+  → GUIDED_VIVA_RUNNING → GUIDED_VIVA_COMPLETED → POST_VIVA_SCORING
+  → WAITING_WRITE_APPROVAL → DRAFT_BOOK_SKILL_GENERATING → DRAFT_BOOK_SKILL_COMPLETED
+  → EVIDENCE_BACKFILL（补齐 UNKNOWN 证据）→ EVAL_RUNNING → EVAL_COMPLETED
+  → WAITING_INSTALL_APPROVAL → BOOK_SKILL_INSTALLED → TERMINATED
+```
+
+**Evidence Backfill 阶段**：Draft 生成后，如果 user-highlights.md、user-notes.md、evidence-ledger.md 仍有 UNKNOWN，必须调用 WeRead API 补齐真实数据，再进入 eval。不得用 UNKNOWN 数据跑 eval。
+
+详见 `references/skill-state-machine.md` 和 `references/harness-engineering.md`。
+
+## 常见 Pitfalls
+
+### Pitfall 1：状态计数错误
+
+**问题**：写"允许状态（14 个）"但实际从 IDLE 到 TERMINATED 是 15 个状态。
+
+**原因**：IDLE 从 0 开始编号（0-14），容易少数一个。
+
+**修复**：用 `search_files` 正则 `^\| \d+ \|` 验证实际状态行数。
+
+**教训**：状态机修改后必须做只读验证，不能只数标题。
+
+### Pitfall 2：Level 3 表述不精确
+
+**问题**：写"Level 3 Candidate（允许 Draft + eval + 安装）"，暗示安装已获批准。
+
+**正确表述**：「Level 3 Candidate（允许进入 Draft + eval；安装仍需 eval PASS + 用户二次批准）」
+
+**教训**：Level 3 Candidate 只代表 Gate/Viva 达标，不包含后续批准。每个阶段的权限必须明确分开。
+
+### Pitfall 3：Evidence Backfill 遗漏
+
+**问题**：Draft 生成后直接进入 eval，但 user-highlights.md 和 user-notes.md 仍是 UNKNOWN。
+
+**正确流程**：Draft 完成后检查证据完整性，如有 UNKNOWN 必须先调用 WeRead API 补齐，再进入 eval。
+
+**API 调用顺序**：
+1. `/book/bookmarklist` — 获取划线（参数名 `bookId` 驼峰）
+2. `/review/list/mine` — 获取批注/想法（参数名 `bookid` 全小写 i）
+3. `/book/chapterinfo` — 获取章节目录（参数名 `bookId` 驼峰）
+
+**注意**：`/review/list/mine` 参数名是 `bookid`（小写 i），不是 `bookId`，写错返回 -2003。
+
+### Install Pipeline（安装流程）
+
+Draft → 正式 book-skill 的 5 步安装流程：
+
+1. **RENAME**：`mv draft-skill-dir skill-dir`（去掉 `-draft` 后缀）
+2. **UPDATE frontmatter**：name 去掉 `-draft`，version 改 `1.0`，status 改 `INSTALLED`，保留 `scope-limited: true`
+3. **REMOVE DRAFT 状态声明**：删除 `**⚠️ DRAFT 状态声明**` 段落，保留 Scope-Limited 声明和不适用场景
+4. **UPDATE version info**：版本=1.0，状态=Installed，添加安装日期、Eval Result、Install Permission
+5. **UPDATE eval files**：去掉 `⚠️ DRAFT EVAL` 标记
+
+**禁止**：删除 limits.md、evidence-ledger.md、evals/、scope-limited 声明。
+
+### Post-install Smoke Test（安装后冒烟测试）
+
+安装后必须运行 4 类 smoke test，全部 PASS 才能进入 TERMINATED：
+
+1. **File Structure**：验证 14 个必需文件全部存在（SKILL.md + 10 references + 3 evals）
+2. **Trigger Smoke Test**：5 个测试（2 个触发 + 2 个拒绝 + 1 个不触发）
+3. **Scope Guard**：7 项检查（scope-limited、不覆盖全书、不用于严肃历史定论/政治立场/学术引用、不处理第 7 章以后、证据不足输出 UNKNOWN）
+4. **Harness Compliance**：8 项检查（evidence-ledger 存在、limits 存在、eval 可追踪、No Fabrication 生效、UNKNOWN 不写 PASS、State Trace 有记录、Current State 可恢复、Install Permission 有记录）
+
+**Total**: 32 项检查。任何 FAIL 不得进入 TERMINATED。
+
+### Hardening Verification 陷阱
+
+**错误**：smoke test 只在 final report 中自证，无独立文件
+**正确**：smoke test 必须是独立文件（verification/smoke-test-log.md），与 final report 分离
+
+**错误**：把 `hermes chat -s` 的触发测试写成 "runtime eval"
+**正确**：触发测试只验证触发规则（STATIC_RULE_CHECK），完整 runtime eval 需要验证 skill 内部行为
+
+**错误**：`hermes skills inspect` 返回 "No skill named" 就判定 skill 不可用
+**正确**：books 类别技能不支持 inspect，但 `hermes chat -s` 可以正常调用
+
+**错误**：runtime 不可用就跳过验证
+**正确**：runtime unavailable 时写 RUNTIME_UNAVAILABLE，但 smoke test 和静态 eval 仍需完成，判定为 HARD_VERIFIED_WITH_RUNTIME_UNAVAILABLE
+
+详见 `references/hardening-verification.md`。
+
+## 降级声明
+
+当 skill-creator 无法完成结构重构/多文件写入时：
+1. skill-creator 不支持什么：结构重构、多文件批量写入、旧规则清理
+2. 为什么必须降级：文件操作最终必须通过 skill_manage/write_file
+3. 替代方案：SKILL.md 用 skill_manage edit，references 用 write_file
+4. 会修改哪些文件：列出清单
+5. 等待用户确认后才执行
+
+## 参考文件（续）
+
+| 文件 | 用途 |
+|------|------|
+| `references/post-viva-scoring-protocol.md` | Post-Viva 评分输出模板（7节结构 + 实战经验） |
+| `references/weread-troubleshooting.md` | WeRead API 故障诊断（用户绑定失效、key vs binding 区别、re-auth 流程） |
+| `references/hardening-verification.md` | Post-install 加固验证（verification 文件结构、runtime eval 方法、forensic audit 检查清单） |
+
+## 修改工作流（必须遵守）
+
+### 审计-修复-审计循环
+
+任何对本 skill 的修改必须遵循三阶段循环：
+1. **READ_ONLY_AUDIT**：只读检查，输出问题清单，等待用户批准
+2. **WRITE_APPROVED**：用户说「批准修改」后才执行写入
+3. **POST-WRITE AUDIT**：写入后立即做只读验证，输出检查表
+
+禁止跳过审计阶段直接写入。
+
+### 流程合规硬性规则
+
+- clarify / approval / confirmation 超时 → **必须停止**，不得自行继续
+- 超时后继续执行 → 标记为 **流程合规：FAIL**
+- 用户未响应时，最安全选择是停止，不是猜测用户意图
+- 降级（从 skill-creator 降到 write_file）必须等用户确认
+
+### 最小补丁模式
+
+当用户说「只修复 X」时：
+- 只改 X，不扩大范围
+- 不顺手修其他问题
+- 不重写整个文件
+- 不添加用户未要求的功能
