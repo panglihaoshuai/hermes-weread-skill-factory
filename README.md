@@ -217,6 +217,23 @@ hermes gateway restart
 
 ---
 
+## 致谢与参考
+
+本项目的设计思想受到以下项目的启发：
+
+- **[kangarooking/cangjie-skill](https://github.com/kangarooking/cangjie-skill)**（⭐1127）— 仓颉的 RIA-TV++ 方法论（赵周拆书法 + 三重验证 + 压力测试）对我们的蒸馏流程产生了重要影响。我们借鉴了其核心理念：
+  - **三重验证筛选**（V1 跨域 / V2 预测力 / V3 独特性）— 验证"提取的内容值不值得做成 skill"
+  - **test-prompts.json 诱饵测试** — 验证 skill 触发精准度，防止误调用
+  - **RIA 拆书法骨架**（源自赵周《这样读书就够了》）
+
+  同时保留了我们独有的 **Reading Gate**（微信读书证据链 + Viva 口试）作为质量门，不照搬仓颉的整套流水线。
+
+- **[alchaincyf/nuwa-skill](https://github.com/alchaincyf/nuwa-skill)** — 女娲蒸馏人（思维方式 / 表达 DNA）的思路启发了我们的"女娲五层蒸馏法"命名和蒸馏维度设计。
+
+感谢这两个开源项目对方法论层面的贡献。
+
+---
+
 ## 贡献
 
 欢迎贡献代码和文档！
