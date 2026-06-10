@@ -113,6 +113,62 @@ Evidence First Principle、No Fabrication Rule、Runtime Trace、Gate Trace、Mo
 
 蒸馏输出：一句话总论 + 章节结构地图 + 5-9 个核心模型 + 决策启发式 + 反模式 + 诊断问题 + 行动协议 + 诚实边界。模板见 `references/book-skill-template.md`。
 
+### 增强方法论（不替代女娲五层）
+
+以下方法论用于**增强**蒸馏和 Viva 的深度，不替代女娲五层核心流程。
+
+**核心原则**：
+- Reading Gate 仍是唯一入口，不变
+- 女娲五层仍是蒸馏骨架，不变
+- 以上方法论是"调味料"，让每个环节更有深度
+
+#### 女娲五层 × RIA 集成
+
+| 女娲层级 | RIA 补充 | 解决的问题 |
+|---------|---------|-----------|
+| 表达DNA | R（原文引用 ≤150字） | 保留作者独特表达 |
+| 心智模型 | I（用自己的话重述） | 验证是否真正理解 |
+| 决策启发式 | E（1-2-3 可执行步骤） | **补：缺少可执行步骤** |
+| 反模式 | A1（书中的失败案例）+ B（边界） | **补：缺少具体案例** |
+| 诚实边界 | B（什么时候不该用） | **补：边界不清楚** |
+
+#### A2 触发条件嵌入 skill description
+
+当前 description 可能写得比较泛，用 RIA 的 A2 三层精确化：
+
+1. **场景描述**（3-5条）：用户在什么情况下需要这个
+2. **语言信号**：用户会说什么话
+3. **边界区分**：和哪些场景不同
+
+**好的 description 示例**：
+> 用户在纠结决策、列举理由却理不出头绪时；或在问"怎么做X才能成功"时；
+> 不适用于纯信息查询类问题。触发词：纠结、没底、不知道怎么选、先做什么。
+
+**坏的 description 示例**：
+> 用户需要思考时。← 太宽泛，会误激活
+
+#### Adler 批判性问题用于蒸馏
+
+在蒸馏"诚实边界"层时，参考 Adler 的批判阶段：
+- 作者的时代局限：这本书写于什么时期？哪些前提可能已经不成立？
+- 作者的立场盲点：作者的身份/行业/文化背景让他忽略了什么？
+- 未被证明的假设：作者把什么当成了不言自明但其实需要论证的东西？
+- 反对意见：如果有人要反驳这本书，最强的论点会是什么？
+
+这些批判性问题的答案，直接成为 book-skill 的 `limits.md` 内容。
+
+#### 三重验证用于蒸馏筛选
+
+在女娲五层蒸馏之前，可选执行三重验证（参考 `references/triple-verification.md`）：
+
+- **V1 跨域**：该方法论在书中至少 2 个独立语境有佐证？
+- **V2 预测力**：能用它推导出书里没明说的问题答案？
+- **V3 独特性**：不是任何聪明人都会说的常识？
+
+通过率预期 25-50%。不通过的降级为 example/引用，不独立成 skill。
+
+详见 `references/ria-tvpp-comparison.md` 和 `references/triple-verification.md`。
+
 ## 红线
 
 详见 `references/garbage-prevention.md`。核心：
@@ -161,7 +217,7 @@ Evidence First Principle、No Fabrication Rule、Runtime Trace、Gate Trace、Mo
 
 - **`api_name` 不是 `action`**：WeRead Gateway 的接口名参数是 `api_name`，写错返回 -2010「用户不存在」，容易误判为 key 失效
 - **`/review/list/mine` 的参数是 `bookid`（小写 i）**，不是 `bookId`，写错返回 -2003
-- **API key 用户绑定可能断开**：key 本身未过期（搜索等公开接口正常），但用户身份绑定失效（/shelf/sync、/user/notebooks、/book/bookmarklist 返回 -2010）。需重新扫码授权（使用 [agent-weread-skill](https://github.com/lovekeji-ai/agent-weread-skill) 的认证流程）
+- **API key 用户绑定可能断开**：key 本身未过期（搜索等公开接口正常），但用户身份绑定失效（/shelf/sync、/user/notebooks、/book/bookmarklist 返回 -2010）。需重新扫码授权（使用 agent-weread-skill 的认证流程，本仓库不包含认证脚本）
 - **headless browser 打不开微信读书登录页的 QR 码**：被反爬拦截。用 agent-weread-skill 的 `weread_auth.py --qr` 脚本生成终端 ASCII QR 码 + PNG 文件
 
 ## 验证政策
@@ -205,6 +261,15 @@ exit 1 / timeout / blocked / user denied 一律不能写 PASS。
 - `/book/getprogress` 和 `/user/notebooks` API 已 smoke test（或明确标记 UNKNOWN 且不阻塞）
 
 **判定**：v1.0-rc 只靠规则+测试事实；v1.0 final 必须有真实产物。
+
+### v1.0 final 已达成
+
+**日期**：2026-06-09
+**第一本正式 book-skill**：mao-zedong-early-thinking-skill（毛泽东早期思想方法论）
+**Eval**：19/19 PASS（1 conditional）
+**Smoke Test**：32/32 PASS
+**Factory Regression**：11/11 PASS
+**Factory Version**：1.0
 
 ## 流程阶段（v1.0 final 完整流程）
 
@@ -278,6 +343,8 @@ Draft → 正式 book-skill 的 5 步安装流程：
 
 ### Hardening Verification 陷阱
 
+**缺少触发精准度验证（test-prompts.json）**：当前 smoke test + runtime eval + forensic audit 都是验证"skill 内容质量"，缺少"触发时机是否精准"的验证。参考 cangjie-skill 的 test-prompts.json 诱饵测试（should_trigger / should_not_trigger / edge_case 三类），已在 Issue #1 跟踪。集成后可在 eval 阶段增加 trigger precision eval。
+
 **错误**：smoke test 只在 final report 中自证，无独立文件
 **正确**：smoke test 必须是独立文件（verification/smoke-test-log.md），与 final report 分离
 
@@ -291,6 +358,31 @@ Draft → 正式 book-skill 的 5 步安装流程：
 **正确**：runtime unavailable 时写 RUNTIME_UNAVAILABLE，但 smoke test 和静态 eval 仍需完成，判定为 HARD_VERIFIED_WITH_RUNTIME_UNAVAILABLE
 
 详见 `references/hardening-verification.md`。
+
+### Public Release 脱敏陷阱
+
+**错误**：直接把 ~/.hermes/skills/ 目录推到 public repo
+**正确**：创建 sanitized export 目录，替换所有私人数据后才能公开
+
+**错误**：把 `qq.com` 域名当作凭证泄露
+**正确**：`weread.qq.com` 是微信读书公开 API 域名，不是私人信息。只有实际的 API key、cookie、token 才是凭证
+
+**错误**：保留真实书名和真实划线原文
+**正确**：所有真实书名替换为虚构示例，所有真实划线/批注替换为虚构内容
+
+**错误**：保留 v1.0 final 达成记录（含真实书名和日期）
+**正确**：删除包含真实书名的达成记录，或替换为虚构书名
+
+**错误**：示例 book-skill 的 status 写成 INSTALLED
+**正确**：示例必须用 `status: SAMPLE`，版本信息中的安装日期写 "N/A（示例）"，Install Permission 写 "N/A（示例）"。避免用户误以为示例是真实安装产物。
+
+**错误**：README 引用其他仓库的脚本（如 `scripts/weread_auth.py`）但不说明来源
+**正确**：如果脚本不在本仓库，必须明确写「本仓库不包含X脚本」并链接到实际拥有该脚本的仓库。不要让读者以为当前 repo 提供了该文件。
+
+**错误**：API 文档中同一接口出现多行、状态矛盾（如一行写 "✅ 返回5本"，另一行写 "⚠️ 未测试"）
+**正确**：同一接口只保留一行，状态统一为实际验证情况。如果部分环境已验证、部分失败，写明条件和降级策略。
+
+详见 `references/sanitization-for-public-release.md`。
 
 ## 降级声明
 
@@ -306,8 +398,11 @@ Draft → 正式 book-skill 的 5 步安装流程：
 | 文件 | 用途 |
 |------|------|
 | `references/post-viva-scoring-protocol.md` | Post-Viva 评分输出模板（7节结构 + 实战经验） |
+| `references/ria-tvpp-comparison.md` | RIA-TV++ 方法论对比分析（cangjie-skill 的三重验证、诱饵测试、A2触发精确化，及可借鉴点） |
+| `references/enhanced-viva-with-weread-evidence.md` | WeRead 证据增强版 Viva 协议（三层追问：L1证据→L2关联→L3批判应用） |
 | `references/weread-troubleshooting.md` | WeRead API 故障诊断（用户绑定失效、key vs binding 区别、re-auth 流程） |
 | `references/hardening-verification.md` | Post-install 加固验证（verification 文件结构、runtime eval 方法、forensic audit 检查清单） |
+| `references/sanitization-for-public-release.md` | 公开发布前脱敏（grep 检查清单、替换规则、导出目录结构、隐私声明） |
 
 ## 修改工作流（必须遵守）
 
@@ -334,3 +429,91 @@ Draft → 正式 book-skill 的 5 步安装流程：
 - 不顺手修其他问题
 - 不重写整个文件
 - 不添加用户未要求的功能
+
+### 设计文档质量要求
+
+当为本 skill 编写设计文档时，**禁止只写说明文档**。设计文档必须包含：
+
+1. **细节模板**：每个增强点的具体模板（字段、格式、示例）
+2. **约束**：每个增强点的红线和禁止项（明确列出）
+3. **实现案例**：用已安装的 book-skill（如 mao-zedong-early-thinking-skill）作为完整示例
+4. **TDD 测试驱动要求**：RED-GREEN-REFACTOR 循环，定义期望行为 → 最小实现 → 验证
+5. **Harness Engineering 约束**：Evidence First、No Fabrication、Runtime Trace、Gate Trace、UNKNOWN Discipline
+
+**错误**：写了一个"说明文档"（问题描述 + 方案选择 + 下一步）就算设计文档
+**正确**：设计文档必须包含上述 5 项，缺一不可
+
+**原因**：用户对工程质量和可审计性要求很高。粗糙的设计文档会导致实现时缺少约束，产出不可审计的产物。
+
+### CEO Review 检查清单
+
+当使用 gstack-openclaw-ceo-review 审查设计文档时，CEO Review 会检查以下内容：
+
+1. **UNKNOWN 场景定义**：每个增强点必须定义 UNKNOWN 的具体场景（什么情况下输出 UNKNOWN）
+2. **回炉流程定义**：每个增强点必须定义回炉流程（触发条件 + 处理方式 + 输出格式）
+3. **通过率异常处理**：每个增强点必须定义通过率异常的处理方式（异常定义 + 处理方式 + 输出格式）
+4. **指标定义**：每个增强点必须定义具体的指标（指标名称 + 定义 + 计算方式 + 单位）
+5. **告警规则**：每个增强点必须定义告警规则（告警名称 + 条件 + 严重程度 + 处理方式）
+6. **Runbook**：每个增强点必须定义 Runbook（问题 + 诊断 + 处理 + 验证）
+
+**错误**：设计文档只写了模板、约束、实现案例、TDD、Harness，就认为完整
+**正确**：设计文档还必须包含 UNKNOWN 场景、回炉流程、通过率异常处理、指标定义、告警规则、Runbook
+
+**原因**：CEO Review 会检查这些内容，缺失会导致审查不通过。
+
+### Enhanced Viva 设计原则
+
+当设计 Enhanced Viva 时，必须遵守以下原则：
+
+**10 题结构**：
+- 证据层（Q1-Q3）：基于用户划线/批注
+- 深度层（Q4-Q7）：三重验证 + Adler 批判
+- 应用层（Q8-Q10）：RIA A2/E
+
+**自适应规则**：
+- 情况 A：划线/批注充足（≥5 条）→ Q1-Q3 用真实划线，Q4-Q10 深度追问
+- 情况 B：划线/批注不足（<5 条）→ Q1-Q2 用已有的，Q4-Q10 补充
+- 情况 C：划线/批注极少（<2 条）→ 直接从 Q4 开始，用替代问题
+
+**结合用户划线/批注**：
+- 优先用用户实际划线/批注提问
+- 划线不足时，用三重验证、批判性问题补充
+- 目标：验证深度理解，不是验证读过
+
+**错误**：Viva 问题太泛（"这章讲了什么？"）
+**正确**：Viva 问题结合用户实际划线/批注，有明确的判断标准和证据要求
+
+**原因**：用户明确要求 Viva 更有深入性和针对性，结合用户微信读书的相关内容和情况。
+
+1. **细节模板**：每个增强点的具体模板（字段、格式、示例）
+2. **约束**：每个增强点的红线和禁止项（明确列出）
+3. **实现案例**：用已安装的 book-skill（如 mao-zedong-early-thinking-skill）作为完整示例
+4. **TDD 测试驱动要求**：RED-GREEN-REFACTOR 循环，定义期望行为 → 最小实现 → 验证
+5. **Harness Engineering 约束**：Evidence First、No Fabrication、Runtime Trace、Gate Trace、UNKNOWN Discipline
+
+**错误**：写了一个"说明文档"（问题描述 + 方案选择 + 下一步）就算设计文档
+**正确**：设计文档必须包含上述 5 项，缺一不可
+
+**原因**：用户对工程质量和可审计性要求很高。粗糙的设计文档会导致实现时缺少约束，产出不可审计的产物。
+
+### 外部方法论集成原则
+
+当引入外部方法论（如 Adler 分析阅读、RIA 拆书法、RIA-TV++ 三重验证）时：
+
+**核心原则：增强不替代**
+
+- Reading Gate 仍是唯一入口，不变
+- 女娲五层仍是蒸馏骨架，不变
+- 外部方法论是"调味料"，让每个环节更有深度
+- 禁止用外部方法论替换核心流程的任何部分
+
+**错误**：用 RIA-TV++ 的六阶段流水线替换女娲五层蒸馏
+**正确**：女娲五层不变，但每一层可以用 RIA 的元素来加深（表达DNA+R、心智模型+I、决策启发式+E、反模式+A1+B、诚实边界+B）
+
+**错误**：用 Adler 分析阅读四步法替换 Reading Gate
+**正确**：Reading Gate 不变，但 Viva 问题可以用 Adler 批判性问题来增强深度
+
+**错误**：把三重验证作为蒸馏的必经阶段
+**正确**：三重验证是可选的质量筛选层，插在 Reading Gate 之后、女娲五层之前
+
+**原因**：用户明确要求"原流程核心思想不要变"。外部方法论的价值在于增强深度，不在于替换骨架。
